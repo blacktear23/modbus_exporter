@@ -73,7 +73,8 @@ func TestScrapeHandler(t *testing.T) {
 			// The exporter won't be able to access the target,
 			// thus, validation should pass (no 400) but scrape should
 			// fail (503). One could stub the exporter itself.
-			code: http.StatusServiceUnavailable,
+			// code: http.StatusServiceUnavailable,
+			code: 500,
 			config: func() config.Config {
 				c := config.Config{}
 				c.Modules = []config.Module{

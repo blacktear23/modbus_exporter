@@ -42,6 +42,45 @@ func (e *Exporter) GetConfig() *config.Config {
 	return &e.config
 }
 
+func (e *Exporter) createHandler(targetAddress string, subTarget byte, module *config.Module) (modbus.ClientHandler, error) {
+	switch module.Protocol {
+	case config.ModbusProtocolTCPIP:
+		// TODO: We should probably be reusing these, right?
+		handler := modbus.NewTCPClientHandler(targetAddress)
+		if module.Timeout != 0 {
+			handler.Timeout = time.Duration(module.Timeout) * time.Millisecond
+		}
+		handler.SlaveId = subTarget
+		if err := handler.Connect(); err != nil {
+			return nil, fmt.Errorf("unable to connect with target %s via module %s", targetAddress, module.Name)
+		}
+		return handler, nil
+	case config.ModbusProtocolSerial:
+		handler := modbus.NewRTUClientHandler(targetAddress)
+		if module.Baudrate != 0 {
+			handler.BaudRate = module.Baudrate
+		}
+		if module.Databits != 0 {
+			handler.DataBits = module.Databits
+		}
+		if module.Parity != "" {
+			handler.Parity = module.Parity
+		}
+		if module.Stopbits != 0 {
+			handler.StopBits = module.Stopbits
+		}
+		if module.Timeout != 0 {
+			handler.Timeout = time.Duration(module.Timeout) * time.Millisecond
+		}
+		handler.SlaveId = subTarget
+		if err := handler.Connect(); err != nil {
+			return nil, fmt.Errorf("unable to connect with target %s via module %s", targetAddress, module.Name)
+		}
+		return handler, nil
+	}
+	return nil, fmt.Errorf("Invalid protocol %s", module.Protocol)
+}
+
 // Scrape scrapes the given target via TCP based on the configuration of the
 // specified module returning a Prometheus gatherer with the resulting metrics.
 func (e *Exporter) Scrape(targetAddress string, subTarget byte, moduleName string) (prometheus.Gatherer, error) {
@@ -52,23 +91,19 @@ func (e *Exporter) Scrape(targetAddress string, subTarget byte, moduleName strin
 		return nil, fmt.Errorf("failed to find '%v' in config", moduleName)
 	}
 
-	// TODO: We should probably be reusing these, right?
-	handler := modbus.NewTCPClientHandler(targetAddress)
-	if module.Timeout != 0 {
-		handler.Timeout = time.Duration(module.Timeout) * time.Millisecond
+	handler, err := e.createHandler(targetAddress, subTarget, module)
+	if err != nil {
+		return nil, err
 	}
-	handler.SlaveId = subTarget
-	if err := handler.Connect(); err != nil {
-		return nil, fmt.Errorf("unable to connect with target %s via module %s",
-			targetAddress, module.Name)
-	}
-
-	// TODO: Should we reuse this?
-	c := modbus.NewClient(handler)
-
 	// Close tcp connection.
-	defer handler.Close()
+	switch rhdler := handler.(type) {
+	case *modbus.TCPClientHandler:
+		defer rhdler.Close()
+	case *modbus.RTUClientHandler:
+		// DO nothing
+	}
 
+	c := modbus.NewClient(handler)
 	metrics, err := scrapeMetrics(module.Metrics, c)
 	if err != nil {
 		return nil, fmt.Errorf("failed to scrape metrics for module '%v': %v", moduleName, err.Error())

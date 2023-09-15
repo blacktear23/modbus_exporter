@@ -7,7 +7,7 @@ repository:
 build:
     binaries:
         - name: modbus_exporter
-    flags: -a -tags 'netgo static_build'
+    flags: -a -tags 'netgo static_build' -trimpath
     ldflags: |
         -X github.com/prometheus/common/version.Version={{.Version}}
         -X github.com/prometheus/common/version.Revision={{.Revision}}

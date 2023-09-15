@@ -251,6 +251,13 @@ type ModbusProtocol string
 const (
 	// ModbusProtocolTCPIP represents modbus via TCP/IP.
 	ModbusProtocolTCPIP = "tcp/ip"
+
+	// ModbusProtocolSerial represents modbus via Serial.
+	ModbusProtocolSerial = "serial"
+)
+
+var (
+	serialPrefix = [...]string{"/dev/ttyACM", "/dev/ttyUSB", "/dev/ttyS"}
 )
 
 // ModbusProtocolValidationError is returned on invalid or unsupported modbus
@@ -267,6 +274,7 @@ func (e *ModbusProtocolValidationError) Error() string {
 func (t *ModbusProtocol) validate() error {
 	possibleProtocols := []ModbusProtocol{
 		ModbusProtocolTCPIP,
+		ModbusProtocolSerial,
 	}
 
 	if t == nil {
