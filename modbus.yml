@@ -43,3 +43,10 @@ modules:
         dataType: bool
         bitOffset: 0
         metricType: gauge
+
+      - name: "some_gauge_int32"
+        help: "some help for some gauge int32"
+        address: 300025
+        dataType: uint32
+        metricType: gauge
+        dendianness: big
