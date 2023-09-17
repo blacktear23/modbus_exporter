@@ -52,7 +52,7 @@ func (e *Exporter) createHandler(targetAddress string, subTarget byte, module *c
 		}
 		handler.SlaveId = subTarget
 		if err := handler.Connect(); err != nil {
-			return nil, fmt.Errorf("unable to connect with target %s via module %s", targetAddress, module.Name)
+			return nil, fmt.Errorf("unable to connect with target %s via module %s\n%v", targetAddress, module.Name, err)
 		}
 		return handler, nil
 	case config.ModbusProtocolSerial:
@@ -74,7 +74,7 @@ func (e *Exporter) createHandler(targetAddress string, subTarget byte, module *c
 		}
 		handler.SlaveId = subTarget
 		if err := handler.Connect(); err != nil {
-			return nil, fmt.Errorf("unable to connect with target %s via module %s", targetAddress, module.Name)
+			return nil, fmt.Errorf("unable to connect with target %s via module %s\n%v", targetAddress, module.Name, err)
 		}
 		return handler, nil
 	}
