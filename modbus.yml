@@ -30,23 +30,31 @@ modules:
         # Optional.
         factor: 3.1415926535
 
-      - name: "some_gauge"
+      - name: "modbus_some_gauge"
         help: "some help for some gauge"
         address: 30023
         dataType: int16
         metricType: gauge
         factor: 2
 
-      - name: "coil"
+      - name: "modbus_coil"
         help: "some help for some coil"
         address: 124
         dataType: bool
         bitOffset: 0
         metricType: gauge
 
-      - name: "some_gauge_int32"
+      - name: "modbus_some_gauge_int32"
         help: "some help for some gauge int32"
         address: 300025
         dataType: uint32
         metricType: gauge
-        dendianness: big
+        endianness: big
+
+      - name: "modubs_cpu_temp"
+        help: "CPU temperature"
+        address: 30003
+        dataType: uint32
+        endianness: big
+        metricType: gauge
+        factor: 0.001
