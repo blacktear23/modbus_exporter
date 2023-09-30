@@ -1,0 +1,13 @@
+[Unit]
+Description=modbus_exporter-9602 service
+After=syslog.target network.target remote-fs.target nss-lookup.target
+
+[Service]
+LimitNOFILE=1000000
+User=root
+ExecStart=/opt/modbus_exporter/modbus_exporter --web.listen-address=":9602" --log.level="info" --config.file="/opt/modbus_exporter/config.yaml"
+Restart=always
+RestartSec=15s
+
+[Install]
+WantedBy=multi-user.target
