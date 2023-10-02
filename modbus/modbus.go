@@ -104,7 +104,7 @@ func (e *Exporter) Scrape(targetAddress string, subTarget byte, moduleName strin
 	}
 
 	c := modbus.NewClient(handler)
-	metrics, err := scrapeMetrics(module.Metrics, c)
+	metrics, err := scrapeMetrics(module.Metrics, c, module.ReadaheadSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to scrape metrics for module '%v': %v", moduleName, err.Error())
 	}
@@ -200,7 +200,7 @@ func keys(m map[string]string) []string {
 	return keys
 }
 
-func scrapeMetrics(definitions []config.MetricDef, c modbus.Client) ([]metric, error) {
+func scrapeMetrics(definitions []config.MetricDef, c modbus.Client, readahead int) ([]metric, error) {
 	metrics := []metric{}
 
 	if len(definitions) == 0 {
@@ -228,22 +228,43 @@ func scrapeMetrics(definitions []config.MetricDef, c modbus.Client) ([]metric, e
 			return []metric{}, fmt.Errorf("modbus register address is out of range: %v", definition.Address)
 		}
 
-		switch modFunction {
-		case 1:
-			f = c.ReadCoils
-		case 2:
-			f = c.ReadDiscreteInputs
-		case 3:
-			f = c.ReadHoldingRegisters
-		case 4:
-			f = c.ReadInputRegisters
-		default:
-			return []metric{}, fmt.Errorf(
-				"metric: '%v', address '%v': metric address should be within the range of 10 - 465535."+
-					"'1xxxxx' for read coil / digital output, '2xxxxx' for read discrete inputs / digital input,"+
-					"'3xxxxx' read holding registers / analog output, '4xxxxx' read input registers / analog input",
-				definition.Name, definition.Address,
-			)
+		if readahead > 0 {
+			rahc := NewModbusReadAhead(c, uint16(readahead))
+			switch modFunction {
+			case 1:
+				f = rahc.ReadCoils
+			case 2:
+				f = rahc.ReadDiscreteInputs
+			case 3:
+				f = rahc.ReadHoldingRegisters
+			case 4:
+				f = rahc.ReadInputRegisters
+			default:
+				return []metric{}, fmt.Errorf(
+					"metric: '%v', address '%v': metric address should be within the range of 10 - 465535."+
+						"'1xxxxx' for read coil / digital output, '2xxxxx' for read discrete inputs / digital input,"+
+						"'3xxxxx' read holding registers / analog output, '4xxxxx' read input registers / analog input",
+					definition.Name, definition.Address,
+				)
+			}
+		} else {
+			switch modFunction {
+			case 1:
+				f = c.ReadCoils
+			case 2:
+				f = c.ReadDiscreteInputs
+			case 3:
+				f = c.ReadHoldingRegisters
+			case 4:
+				f = c.ReadInputRegisters
+			default:
+				return []metric{}, fmt.Errorf(
+					"metric: '%v', address '%v': metric address should be within the range of 10 - 465535."+
+						"'1xxxxx' for read coil / digital output, '2xxxxx' for read discrete inputs / digital input,"+
+						"'3xxxxx' read holding registers / analog output, '4xxxxx' read input registers / analog input",
+					definition.Name, definition.Address,
+				)
+			}
 		}
 
 		m, err := scrapeMetric(definition, f, modAddress)

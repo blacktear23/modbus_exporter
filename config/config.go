@@ -59,14 +59,15 @@ type ListTargets map[string]*Module
 
 // Module defines the configuration parameters of a modbus module.
 type Module struct {
-	Name     string         `yaml:"name"`
-	Protocol ModbusProtocol `yaml:"protocol"`
-	Timeout  int            `yaml:"timeout"`
-	Baudrate int            `yaml:"baudrate"`
-	Databits int            `yaml:"databits"`
-	Stopbits int            `yaml:"stopbits"`
-	Parity   string         `yaml:"parity"`
-	Metrics  []MetricDef    `yaml:"metrics"`
+	Name          string         `yaml:"name"`
+	ReadaheadSize int            `yaml:"readahead"`
+	Protocol      ModbusProtocol `yaml:"protocol"`
+	Timeout       int            `yaml:"timeout"`
+	Baudrate      int            `yaml:"baudrate"`
+	Databits      int            `yaml:"databits"`
+	Stopbits      int            `yaml:"stopbits"`
+	Parity        string         `yaml:"parity"`
+	Metrics       []MetricDef    `yaml:"metrics"`
 }
 
 // RegisterAddr specifies the register in the possible output of _digital
@@ -310,6 +311,13 @@ func (s *Module) validate() error {
 		if err := def.validate(); err != nil {
 			return fmt.Errorf("failed to validate module %v: %v", s.Name, err)
 		}
+	}
+
+	if s.ReadaheadSize > 120 {
+		err = fmt.Errorf("readahead size is too big, should less than 120")
+	}
+	if s.ReadaheadSize < 0 {
+		err = fmt.Errorf("invalid readahead size")
 	}
 
 	return err
