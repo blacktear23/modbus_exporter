@@ -17,6 +17,10 @@ func TestReadaheadBuffer(t *testing.T) {
 		rb.Data[i] = byte(i + 1)
 	}
 
+	if rb.Contains(99, 2) {
+		t.Fatal("Should not contain 99, 2")
+	}
+
 	if !rb.Contains(100, 1) {
 		t.Fatal("Should contain 100, 1")
 	}
@@ -97,12 +101,26 @@ func TestModbusReadAhead(t *testing.T) {
 		rb.Data[i] = byte(i + 1)
 	}
 
+	rb2 := &ReadaheadBuffer{
+		StartAddr: 165,
+		Length:    64,
+		Data:      make([]byte, 128),
+	}
+
+	for i := 0; i < 128; i++ {
+		rb2.Data[i] = byte(i + 1)
+	}
+
 	mra := NewModbusReadAhead(nil, 64)
-	mra.buffers[3] = []*ReadaheadBuffer{rb}
+	mra.buffers[3] = []*ReadaheadBuffer{rb, rb2}
 	buf := mra.findBuffer(3, 100, 2)
 	assertNotByStr(t, buf, "<nil>")
 	data, _ := buf.Read(100, 2)
 	assertByteArr(t, data, "[1 2 3 4]")
-	buf = mra.findBuffer(3, 180, 2)
+	buf = mra.findBuffer(3, 380, 2)
+	assertByStr(t, buf, "<nil>")
+	buf = mra.findBuffer(3, 163, 2)
+	assertByStr(t, buf, "<nil>")
+	buf = mra.findBuffer(3, 164, 4)
 	assertByStr(t, buf, "<nil>")
 }
