@@ -71,3 +71,38 @@ func TestReadaheadBufferRead(t *testing.T) {
 		log.Fatal("Expect an error")
 	}
 }
+
+func assertByStr(t *testing.T, value any, expect string) {
+	valueStr := fmt.Sprintf("%v", value)
+	if valueStr != expect {
+		t.Fatalf("Expect %s but got %s", expect, valueStr)
+	}
+}
+
+func assertNotByStr(t *testing.T, value any, expect string) {
+	valueStr := fmt.Sprintf("%v", value)
+	if valueStr == expect {
+		t.Fatalf("Expect not %s but got %s", expect, valueStr)
+	}
+}
+
+func TestModbusReadAhead(t *testing.T) {
+	rb := &ReadaheadBuffer{
+		StartAddr: 100,
+		Length:    64,
+		Data:      make([]byte, 128),
+	}
+
+	for i := 0; i < 128; i++ {
+		rb.Data[i] = byte(i + 1)
+	}
+
+	mra := NewModbusReadAhead(nil, 64)
+	mra.buffers[3] = []*ReadaheadBuffer{rb}
+	buf := mra.findBuffer(3, 100, 2)
+	assertNotByStr(t, buf, "<nil>")
+	data, _ := buf.Read(100, 2)
+	assertByteArr(t, data, "[1 2 3 4]")
+	buf = mra.findBuffer(3, 180, 2)
+	assertByStr(t, buf, "<nil>")
+}
