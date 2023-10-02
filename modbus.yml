@@ -1,6 +1,8 @@
 modules:
   - name: "serialtest"
     protocol: "serial"
+    # Read-ahead size, how many register read by one request and cache it
+    # readahead: 64
     # Bit-Rate, default is 19200
     baudrate: 9600
     # Data bits, default is 8
