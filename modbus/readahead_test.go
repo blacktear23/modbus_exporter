@@ -1,10 +1,73 @@
 package modbus
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"testing"
+
+	"github.com/goburrow/modbus"
 )
+
+var (
+	_                modbus.Client = &mockModbusClient{}
+	errNotImplements               = errors.New("Not Implements")
+)
+
+type mockModbusClient struct {
+	ReadHoldingRegistersCalls int
+}
+
+func (c *mockModbusClient) ReadCoils(address, quantity uint16) ([]byte, error) {
+	return nil, errNotImplements
+}
+
+func (c *mockModbusClient) ReadDiscreteInputs(address, quantity uint16) ([]byte, error) {
+	return nil, errNotImplements
+}
+
+func (c *mockModbusClient) WriteSingleCoil(address, quantity uint16) ([]byte, error) {
+	return nil, errNotImplements
+}
+
+func (c *mockModbusClient) WriteMultipleCoils(address, quantity uint16, value []byte) ([]byte, error) {
+	return nil, errNotImplements
+}
+
+func (c *mockModbusClient) ReadInputRegisters(address, quantity uint16) ([]byte, error) {
+	return nil, errNotImplements
+}
+
+func (c *mockModbusClient) ReadHoldingRegisters(address, quantity uint16) ([]byte, error) {
+	c.ReadHoldingRegistersCalls += 1
+	data := make([]byte, 2048)
+	for i := 0; i < len(data); i++ {
+		data[i] = byte(i)
+	}
+	pos := int(address) * 2
+	posEnd := int(quantity)*2 + pos
+	return data[pos:posEnd], nil
+}
+
+func (c *mockModbusClient) WriteSingleRegister(address, quantity uint16) ([]byte, error) {
+	return nil, errNotImplements
+}
+
+func (c *mockModbusClient) WriteMultipleRegisters(address, quantity uint16, value []byte) ([]byte, error) {
+	return nil, errNotImplements
+}
+
+func (c *mockModbusClient) ReadWriteMultipleRegisters(readAddress, readQuantity, writeAddress, writeQuantity uint16, value []byte) ([]byte, error) {
+	return nil, errNotImplements
+}
+
+func (c *mockModbusClient) MaskWriteRegister(address, andMask, orMask uint16) ([]byte, error) {
+	return nil, errNotImplements
+}
+
+func (c *mockModbusClient) ReadFIFOQueue(address uint16) ([]byte, error) {
+	return nil, errNotImplements
+}
 
 func TestReadaheadBuffer(t *testing.T) {
 	rb := ReadaheadBuffer{
@@ -90,6 +153,18 @@ func assertNotByStr(t *testing.T, value any, expect string) {
 	}
 }
 
+func assertNotNil(t *testing.T, value any) {
+	if value == nil {
+		t.Fatal("Expect not nil but got nil")
+	}
+}
+
+func assertNil(t *testing.T, value any) {
+	if value != nil {
+		t.Fatalf("Expect not nil but got %v", value)
+	}
+}
+
 func TestModbusReadAhead(t *testing.T) {
 	rb := &ReadaheadBuffer{
 		StartAddr: 100,
@@ -123,4 +198,66 @@ func TestModbusReadAhead(t *testing.T) {
 	assertByStr(t, buf, "<nil>")
 	buf = mra.findBuffer(3, 164, 4)
 	assertByStr(t, buf, "<nil>")
+}
+
+func TestModbusReadAhead2(t *testing.T) {
+	client := &mockModbusClient{}
+	mra := NewModbusReadAhead(client, 64)
+	data, err := mra.ReadHoldingRegisters(100, 1)
+	assertNil(t, err)
+	assertByteArr(t, data, "[200 201]")
+	data, err = mra.ReadHoldingRegisters(102, 1)
+	assertNil(t, err)
+	assertByteArr(t, data, "[204 205]")
+	if client.ReadHoldingRegistersCalls != 1 {
+		t.Fatal("ReadHoldingRegisters function should be called once")
+	}
+}
+
+func TestModbusReadAhead3(t *testing.T) {
+	client := &mockModbusClient{}
+	mra := NewModbusReadAhead(client, 64)
+	data, err := mra.ReadHoldingRegisters(100, 1)
+	assertNil(t, err)
+	assertByteArr(t, data, "[200 201]")
+	data, err = mra.ReadHoldingRegisters(163, 2)
+	assertNil(t, err)
+	assertByteArr(t, data, "[70 71 72 73]")
+	if client.ReadHoldingRegistersCalls != 2 {
+		t.Fatal("ReadHoldingRegisters function should be called 2 times")
+	}
+}
+
+func TestModbusReadAhead4(t *testing.T) {
+	client := &mockModbusClient{}
+	mra := NewModbusReadAhead(client, 64)
+	data, err := mra.ReadHoldingRegisters(100, 1)
+	assertNil(t, err)
+	assertByteArr(t, data, "[200 201]")
+	data, err = mra.ReadHoldingRegisters(163, 2)
+	assertNil(t, err)
+	assertByteArr(t, data, "[70 71 72 73]")
+	data, err = mra.ReadHoldingRegisters(180, 1)
+	assertNil(t, err)
+	assertByteArr(t, data, "[104 105]")
+	if client.ReadHoldingRegistersCalls != 2 {
+		t.Fatal("ReadHoldingRegisters function should be called 2 times")
+	}
+}
+
+func TestModbusReadAhead5(t *testing.T) {
+	client := &mockModbusClient{}
+	mra := NewModbusReadAhead(client, 64)
+	data, err := mra.ReadHoldingRegisters(100, 1)
+	assertNil(t, err)
+	assertByteArr(t, data, "[200 201]")
+	data, err = mra.ReadHoldingRegisters(180, 1)
+	assertNil(t, err)
+	assertByteArr(t, data, "[104 105]")
+	data, err = mra.ReadHoldingRegisters(163, 2)
+	assertNil(t, err)
+	assertByteArr(t, data, "[70 71 72 73]")
+	if client.ReadHoldingRegistersCalls != 3 {
+		t.Fatal("ReadHoldingRegisters function should be called 3 times")
+	}
 }
