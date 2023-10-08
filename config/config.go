@@ -313,8 +313,8 @@ func (s *Module) validate() error {
 		}
 	}
 
-	if s.ReadaheadSize > 120 {
-		err = fmt.Errorf("readahead size is too big, should less than 120")
+	if s.ReadaheadSize > 100 {
+		err = fmt.Errorf("readahead size is too big, should less or equals than 100")
 	}
 	if s.ReadaheadSize < 0 {
 		err = fmt.Errorf("invalid readahead size")
